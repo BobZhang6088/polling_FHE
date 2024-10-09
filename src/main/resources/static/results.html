@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poll Results with Pie Charts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f8f8f8;
+        }
+        .container {
+            width: 70%;
+            margin: 20px;
+            padding: 20px;
+        }
+        .question-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd; /* Light border */
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .question-text {
+            width: 60%;
+        }
+        .question-text h2 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .options {
+            margin-left: 20px;
+        }
+        .options label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .chart {
+            width: 35%;
+            text-align: center;
+        }
+        canvas {
+            width: 100% !important;
+            max-width: 250px;
+            height: auto !important;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="question-result">
+            <div class="question-text">
+                <h2>Should we ban plastic straws?</h2>
+                <div class="options">
+                    <label>YES - 60%</label>
+                    <label>NO - 40%</label>
+                </div>
+            </div>
+            <div class="chart">
+                <canvas id="strawsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="question-result">
+            <div class="question-text">
+                <h2>How old are you?</h2>
+                <div class="options">
+                    <label>16 - 24 - 25%</label>
+                    <label>25 - 35 - 35%</label>
+                    <label>36 - 45 - 20%</label>
+                    <label>46 and above - 20%</label>
+                </div>
+            </div>
+            <div class="chart">
+                <canvas id="ageChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js setup for the first poll (Plastic Straws)
+        var ctx1 = document.getElementById('strawsChart').getContext('2d');
+        var strawsChart = new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: ['YES', 'NO'],
+                datasets: [{
+                    data: [60, 40], // Percentages
+                    backgroundColor: ['#4CAF50', '#FF6384'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                }
+            }
+        });
+
+        // Chart.js setup for the second poll (Age Group)
+        var ctx2 = document.getElementById('ageChart').getContext('2d');
+        var ageChart = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: ['16 - 24', '25 - 35', '36 - 45', '46 and above'],
+                datasets: [{
+                    data: [25, 35, 20, 20], // Percentages
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                }
+            }
+        });
+    </script>
+</body>
+</html>
