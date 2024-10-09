@@ -1,0 +1,45 @@
+version: '3'
+services:
+  springboot-app:
+    image: polling:latest
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/polling_FHE
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Zzb262602
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update  # 或者根据你的需求选择其他策略
+    depends_on:
+      - mysql  # 依赖 MySQL 服务
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: Zzb262602
+      MYSQL_DATABASE: polling_FHE
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql   # 持久化 MySQL 数据
+      - ./db/sql:/docker-entrypoint-initdb.d   # 挂载 SQL 脚本目录
+    networks:
+      - app-network
+
+  cpp-service:
+    build:
+      context: ./cpp-service
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+            
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

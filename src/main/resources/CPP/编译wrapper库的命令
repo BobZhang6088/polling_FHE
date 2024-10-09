@@ -1,0 +1,5 @@
+/opt/homebrew/Cellar/seal/4.1.2/include/SEAL-4.1/seal
+/opt/homebrew/Cellar/seal/4.1.2/lib
+
+//用于生成wrapper库的命令。注意在执行之前要安装SEAL和micorosoft gsl
+g++ -std=c++17 -I/opt/homebrew/Cellar/seal/4.1.2/include/SEAL-4.1 -I/usr/local/include -L/opt/homebrew/Cellar/seal/4.1.2/lib -lseal -shared -o libsealwrapper.dylib sealwrapper.cpp
