@@ -10,6 +10,9 @@ include_directories(${SEAL_INCLUDE_DIR})
 # 添加 cpp-httplib
 add_subdirectory(httplib)
 
+# 包含 nlohmann/json
+include_directories(/usr/local/include)
+
 # 构建应用
 add_executable(cpp-service main.cpp)
 
