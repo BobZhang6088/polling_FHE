@@ -65,11 +65,15 @@ inline std::string uint64_to_hex_string(std::uint64_t value)
     return seal::util::uint_to_hex_string(&value, std::size_t(1));
 }
 
+// TO-DO:
+// Use the Serialization class for persistence and transmission of keys and ciphertext
+
 int main() {
     // 设置 SEAL 加密上下文
     seal::EncryptionParameters parms(seal::scheme_type::bfv);
     parms.set_poly_modulus_degree(2048);
     parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(2048));
+    // plain_modulus是一个重要的参数，plaintext的数值不能超过plain_modulus
     parms.set_plain_modulus(1024);
 
     seal::SEALContext context(parms);
