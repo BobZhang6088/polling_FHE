@@ -1,19 +1,20 @@
-cmake_minimum_required(VERSION 3.10)
-project(CppService)
+FROM gcc:11 as builder
 
-set(CMAKE_CXX_STANDARD 17)
+# 安装 CMake 和其他依赖
+RUN apt-get update && apt-get install -y cmake wget
 
-# 设置 Microsoft SEAL 路径
-find_package(SEAL REQUIRED)
-include_directories(${SEAL_INCLUDE_DIR})
+# 安装 Microsoft SEAL
+RUN git clone https://github.com/microsoft/SEAL.git && cd SEAL && cmake . && make && make install
 
-# 添加 cpp-httplib
-add_subdirectory(httplib)
+# 下载并安装 nlohmann/json 库
+RUN git clone https://github.com/nlohmann/json.git && cd json && cmake -DBUILD_TESTING=OFF . && make install
 
-# 包含 nlohmann/json
-include_directories(/usr/local/include)
+# 复制项目
+COPY . /cpp-service
+WORKDIR /cpp-service
 
-# 构建应用
-add_executable(cpp-service main.cpp)
+# 构建 C++ 服务
+RUN cmake . && make
 
-target_link_libraries(cpp-service SEAL::seal httplib)
+# 运行 C++ 服务
+CMD ["./cpp-service"]
