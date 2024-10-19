@@ -17,7 +17,7 @@ Build the Java project:
 
 ```
 
-Runt Docker compose
+Run Docker compose
 
 ```shell
 
