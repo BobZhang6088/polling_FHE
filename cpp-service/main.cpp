@@ -80,10 +80,10 @@ int main() {
 
     std::cout << "SEAL context created" << std::endl;
 
-    // 设置 HTTP 服务
+    // Setup HTTP Sever
     httplib::Server svr;
 
-    // 1. 返回一个 secret key
+    // 1. generate secret keys
     svr.Get("/get_secret_key", [&](const httplib::Request& req, httplib::Response& res) {
         seal::KeyGenerator keygen(context);
         auto secret_key = keygen.secret_key();
@@ -96,7 +96,7 @@ int main() {
         res.set_content(response_json.dump(), "application/json");
     });
 
-    // 2. 输入一个 secret key，返回一个 public key
+    // 2. generate public keys: input a secret key，return public key
     svr.Post("/get_public_key", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             json request_json = json::parse(req.body);
@@ -120,7 +120,7 @@ int main() {
         }
     });
 
-    // 3. 输入 secret key 和 ciphertext，返回 plaintext
+    // 3.decrypt: input a secret key and a ciphertext，return plaintext
     svr.Post("/decrypt", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             json request_json = json::parse(req.body);
@@ -148,7 +148,7 @@ int main() {
         }
     });
 
-    // 4. 输入一个 public key 和一个整数，返回 ciphertext
+    // 4. encrypt: input a public key and an integer，return the ciphertext
     svr.Post("/encrypt_with_public_key", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             json request_json = json::parse(req.body);
@@ -175,7 +175,7 @@ int main() {
         }
     });
 
-    // 5. 输入一个 ciphertext 和一个整数，做加法并返回结果
+    // 5. perform addition on ciphertext: input te ciphertext and an integer，return the result
     svr.Post("/add_to_ciphertext", [&](const httplib::Request& req, httplib::Response& res) {
     try {
         json request_json = json::parse(req.body);

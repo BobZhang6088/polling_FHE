@@ -39,44 +39,52 @@
             margin-right: 10px;
         }
     </style>
+    <script>
+        function goToResultsPage() {
+            window.location.href = '/results.html';
+        }
+        function goToVotePage() {
+            window.location.href = '/question.html';
+        }
+    </script>
 </head>
 <body>
-    <div class="container">
-        <h1 class="section-title">Ongoing Polls</h1>
-        <div class="poll-group">
-            <div class="poll-item">
-                <h3>Should we ban plastic straws?</h3>
-                <p>160 participants</p>
-                <button>Vote</button>
-                <button>View Results</button>
-            </div>
-            <div class="poll-item">
-                <h3>Should we ban TikTok?</h3>
-                <p>160 participants</p>
-                <button>Vote</button>
-                <button>View Results</button>
-            </div>
-            <div class="poll-item">
-                <h3>Should we remove the carbon tax?</h3>
-                <p>160 participants</p>
-                <button>Vote</button>
-                <button>View Results</button>
-            </div>
+<div class="container">
+    <h1 class="section-title">Ongoing Polls</h1>
+    <div class="poll-group">
+        <div class="poll-item">
+            <h3>Should we ban plastic straws?</h3>
+            <p>160 participants</p>
+            <button onclick="goToVotePage()">Vote</button>
+            <button onclick="goToResultsPage()">View Results</button>
         </div>
-
-        <h1 class="section-title">Completed Polls</h1>
-        <div class="poll-group">
-            <div class="poll-item">
-                <h3>Do we need more immigration?</h3>
-                <p>160 participants</p>
-                <button>View Results</button>
-            </div>
-            <div class="poll-item">
-                <h3>Should drugs be decriminalized?</h3>
-                <p>160 participants</p>
-                <button>View Results</button>
-            </div>
+        <div class="poll-item">
+            <h3>Should we ban TikTok?</h3>
+            <p>160 participants</p>
+            <button onclick="goToVotePage()">Vote</button>
+            <button onclick="goToResultsPage()">View Results</button>
+        </div>
+        <div class="poll-item">
+            <h3>Should we remove the carbon tax?</h3>
+            <p>160 participants</p>
+            <button onclick="goToVotePage()">Vote</button>
+            <button onclick="goToResultsPage()">View Results</button>
         </div>
     </div>
+
+    <h1 class="section-title">Completed Polls</h1>
+    <div class="poll-group">
+        <div class="poll-item">
+            <h3>Do we need more immigration?</h3>
+            <p>160 participants</p>
+            <button onclick="goToResultsPage()">View Results</button>
+        </div>
+        <div class="poll-item">
+            <h3>Should drugs be decriminalized?</h3>
+            <p>160 participants</p>
+            <button onclick="goToResultsPage()">View Results</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

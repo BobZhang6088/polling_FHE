@@ -57,7 +57,7 @@ const encryptor = seal.Encryptor(context, publicKey)
 
 // Encode data to a PlainText
 const plainText = batchEncoder.encode(
-    Int32Array.from([1, 2, 3,2,3,4,1,1,1,1,1]) // This could also be a Uint32Array
+    Int32Array.from([5]) // This could also be a Uint32Array
   );
 
   const cipherText = encryptor.encrypt(plainText);
@@ -70,7 +70,7 @@ const plainText = batchEncoder.encode(
     plainTextResult,
     true // Can be omitted since this defaults to true.
   );
-  
+
   console.log('decoded', decoded);
 
     // 加密逻辑
