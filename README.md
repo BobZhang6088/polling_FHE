@@ -25,6 +25,6 @@ Runt Docker compose
 
 ```
 
-#### Check the localhost
+#### 3. Check the localhost
 
 Open your browser and go to http://localhost:8080
