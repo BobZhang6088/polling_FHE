@@ -20,6 +20,7 @@
         }
         .poll-group {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-around;
             margin-bottom: 30px;
         }
@@ -28,6 +29,7 @@
             padding: 20px;
             width: 30%;
             text-align: center;
+            margin-bottom: 20px;
         }
         .poll-item h3 {
             font-size: 18px;
@@ -40,9 +42,68 @@
         }
     </style>
     <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchOngoingPolls();
+            fetchCompletedPolls();
+        });
+
+        function fetchOngoingPolls() {
+            fetch('/api/polls/ongoing')
+                .then(response => response.json())
+                .then(data => {
+                    const ongoingContainer = document.querySelector('.ongoing-polls');
+                    data.forEach(poll => {
+                        const pollElement = createPollElement(poll, true);
+                        ongoingContainer.appendChild(pollElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching ongoing polls:', error);
+                });
+        }
+
+        function fetchCompletedPolls() {
+            fetch('/api/polls/completed')
+                .then(response => response.json())
+                .then(data => {
+                    const completedContainer = document.querySelector('.completed-polls');
+                    data.forEach(poll => {
+                        const pollElement = createPollElement(poll, false);
+                        completedContainer.appendChild(pollElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching completed polls:', error);
+                });
+        }
+
+        function createPollElement(poll, isOngoing) {
+            const pollDiv = document.createElement('div');
+            pollDiv.classList.add('poll-item');
+
+            const titleElement = document.createElement('h3');
+            titleElement.textContent = poll.title;
+            pollDiv.appendChild(titleElement);
+
+            if (isOngoing) {
+                const voteButton = document.createElement('button');
+                voteButton.textContent = "Vote";
+                voteButton.onclick = () => goToVotePage();
+                pollDiv.appendChild(voteButton);
+            }
+
+            const resultsButton = document.createElement('button');
+            resultsButton.textContent = "View Results";
+            resultsButton.onclick = () => goToResultsPage();
+            pollDiv.appendChild(resultsButton);
+
+            return pollDiv;
+        }
+
         function goToResultsPage() {
             window.location.href = '/results.html';
         }
+
         function goToVotePage() {
             window.location.href = '/question.html';
         }
@@ -51,39 +112,13 @@
 <body>
 <div class="container">
     <h1 class="section-title">Ongoing Polls</h1>
-    <div class="poll-group">
-        <div class="poll-item">
-            <h3>Should we ban plastic straws?</h3>
-            <p>160 participants</p>
-            <button onclick="goToVotePage()">Vote</button>
-            <button onclick="goToResultsPage()">View Results</button>
-        </div>
-        <div class="poll-item">
-            <h3>Should we ban TikTok?</h3>
-            <p>160 participants</p>
-            <button onclick="goToVotePage()">Vote</button>
-            <button onclick="goToResultsPage()">View Results</button>
-        </div>
-        <div class="poll-item">
-            <h3>Should we remove the carbon tax?</h3>
-            <p>160 participants</p>
-            <button onclick="goToVotePage()">Vote</button>
-            <button onclick="goToResultsPage()">View Results</button>
-        </div>
+    <div class="poll-group ongoing-polls">
+        <!-- Ongoing polls will be appended here by JavaScript -->
     </div>
 
     <h1 class="section-title">Completed Polls</h1>
-    <div class="poll-group">
-        <div class="poll-item">
-            <h3>Do we need more immigration?</h3>
-            <p>160 participants</p>
-            <button onclick="goToResultsPage()">View Results</button>
-        </div>
-        <div class="poll-item">
-            <h3>Should drugs be decriminalized?</h3>
-            <p>160 participants</p>
-            <button onclick="goToResultsPage()">View Results</button>
-        </div>
+    <div class="poll-group completed-polls">
+        <!-- Completed polls will be appended here by JavaScript -->
     </div>
 </div>
 </body>

@@ -9,6 +9,10 @@ import group6.PollingWithHE.Entities.*;
 
 import jakarta.transaction.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class PollService {
 
@@ -51,6 +55,18 @@ public class PollService {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public List<PollResponse> getOngoingPolls() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Poll> ongoingPolls = pollRepository.findByEndTimeAfter(now);
+        return ongoingPolls.stream().map(PollResponse::new).collect(Collectors.toList());
+    }
+
+    public List<PollResponse> getCompletedPolls() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Poll> completedPolls = pollRepository.findByEndTimeBefore(now);
+        return completedPolls.stream().map(PollResponse::new).collect(Collectors.toList());
     }
 }
 
