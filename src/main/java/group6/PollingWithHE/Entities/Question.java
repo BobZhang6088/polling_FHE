@@ -21,7 +21,7 @@ public class Question {
     private int questionOrder;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Option> options;
+    private List<PollOption> options;
 
     // Getters and Setters
     public Integer getId() {
@@ -56,11 +56,11 @@ public class Question {
         this.questionOrder = questionOrder;
     }
 
-    public List<Option> getOptions() {
+    public List<PollOption> getOptions() {
         return options;
     }
 
-    public void setOptions(List<Option> options) {
+    public void setOptions(List<PollOption> options) {
         this.options = options;
     }
 }

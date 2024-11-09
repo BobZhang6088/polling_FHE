@@ -23,26 +23,34 @@ public class PollService {
 
     @Transactional
     public void createPoll(PollDTO pollDTO) {
-        Poll poll = new Poll();
-        poll.setTitle(pollDTO.getTitle());
-        poll.setEndTime(pollDTO.getEndTime());
-        pollRepository.save(poll);
+        try {
+            Poll poll = new Poll();
+            poll.setTitle(pollDTO.getTitle());
+            poll.setEndTime(pollDTO.getEndTime());
+            pollRepository.save(poll);
+            System.out.println("Saved Poll ID: " + poll.getId());
 
-        for (QuestionDTO questionDTO : pollDTO.getQuestions()) {
-            Question question = new Question();
-            question.setPoll(poll);
-            question.setTitle(questionDTO.getTitle());
-            question.setQuestionOrder(questionDTO.getOrder());
-            questionRepository.save(question);
+            for (QuestionDTO questionDTO : pollDTO.getQuestions()) {
+                Question question = new Question();
+                question.setPoll(poll);
+                question.setTitle(questionDTO.getTitle());
+                question.setQuestionOrder(questionDTO.getOrder());
+                questionRepository.save(question);
+                System.out.println("Saved Question ID: " + question.getId());
 
-            for (OptionDTO optionDTO : questionDTO.getOptions()) {
-                Option option = new Option();
-                option.setQuestion(question);
-                option.setOptionText(optionDTO.getText());
-                option.setOptionOrder(optionDTO.getOrder());
-                optionRepository.save(option);
+                for (OptionDTO optionDTO : questionDTO.getOptions()) {
+                    PollOption option = new PollOption();
+                    option.setQuestion(question);
+                    option.setOptionText(optionDTO.getText());
+                    option.setOptionOrder(optionDTO.getOrder());
+                    optionRepository.save(option);
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Error creating poll: " + e.getMessage());
+            throw new RuntimeException(e);
         }
+
     }
 }
 

@@ -3,7 +3,7 @@ package group6.PollingWithHE.Entities;
 import jakarta.persistence.*;
 
 @Entity
-public class Option {
+public class PollOption {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
