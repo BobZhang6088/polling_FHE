@@ -3,7 +3,7 @@
     "build": "webpack --mode production"
   },
   "dependencies": {
-    "node-seal": "^4.1.2"
+    "node-seal": "^5.1.4"
   },
   "devDependencies": {
     "webpack": "^5.0.0",

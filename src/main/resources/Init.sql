@@ -28,7 +28,7 @@ CREATE TABLE results (
     id INT AUTO_INCREMENT PRIMARY KEY,
     poll_id INT NOT NULL,
     question_id INT NOT NULL,
-    option_id INT NOT NULL,
+    encrypted_option_id VARBINARY(1024),
     encrypted_result VARBINARY(1024), -- Store the encrypted selection count
     FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,

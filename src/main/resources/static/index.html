@@ -88,7 +88,7 @@
             if (isOngoing) {
                 const voteButton = document.createElement('button');
                 voteButton.textContent = "Vote";
-                voteButton.onclick = () => goToVotePage();
+                voteButton.onclick = () => goToVotePage(poll.id);
                 pollDiv.appendChild(voteButton);
             }
 
@@ -104,8 +104,8 @@
             window.location.href = '/results.html';
         }
 
-        function goToVotePage() {
-            window.location.href = '/question.html';
+        function goToVotePage(pollId) {
+            window.location.href = `/poll-questions?pollId=${pollId}`;
         }
     </script>
 </head>

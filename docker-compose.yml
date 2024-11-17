@@ -36,6 +36,16 @@ services:
       - "8081:8081"
     networks:
       - app-network
+
+  node-seal-service:
+    build:
+      context: ./fhe-service
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./fhe-service:/usr/src/app
+    networks:
+      - app-network
             
 volumes:
   mysql-data:

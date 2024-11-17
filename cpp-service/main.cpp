@@ -2,10 +2,14 @@
 #include <seal/seal.h>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <nlohmann/json.hpp>
 #include "base64.h"
 
 using json = nlohmann::json;
+
+const std::string ENCRYPTION_PARAMETERS_FILE = "encryption_params.bin";
+const std::string SECRET_KEY_FILE = "secret_key.bin";
 
 std::string secret_key_to_string(const seal::SecretKey& secret_key) {
     std::stringstream ss;
@@ -57,6 +61,47 @@ seal::Plaintext int_to_plaintext(int value) {
     return seal::Plaintext(value);
 }
 
+seal::EncryptionParameters load_or_generate_encryption_parameters() {
+    // Try to load encryption parameters from file
+    std::ifstream params_file(ENCRYPTION_PARAMETERS_FILE, std::ios::binary);
+    if (params_file.is_open()) {
+        seal::EncryptionParameters parms;
+        parms.load(params_file);
+        std::cout << "Loaded encryption parameters from file." << std::endl;
+        return parms;
+    } else {
+        // Generate new encryption parameters if not found
+        seal::EncryptionParameters parms(seal::scheme_type::bfv);
+        parms.set_poly_modulus_degree(2048);
+        parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(2048));
+        parms.set_plain_modulus(1024);
+
+        std::ofstream params_out(ENCRYPTION_PARAMETERS_FILE, std::ios::binary);
+        parms.save(params_out);
+        std::cout << "Generated and saved new encryption parameters." << std::endl;
+        return parms;
+    }
+}
+
+
+seal::SecretKey load_or_generate_secret_key(const seal::SEALContext& context, seal::KeyGenerator& keygen) {
+    // Try to load the secret key from file
+    std::ifstream sk_file(SECRET_KEY_FILE, std::ios::binary);
+    if (sk_file.is_open()) {
+        seal::SecretKey secret_key;
+        secret_key.load(context, sk_file);
+        std::cout << "Loaded secret key from file." << std::endl;
+        return secret_key;
+    } else {
+        // Generate a new secret key if not found
+        seal::SecretKey secret_key = keygen.secret_key();
+        std::ofstream sk_out(SECRET_KEY_FILE, std::ios::binary);
+        secret_key.save(sk_out);
+        std::cout << "Generated and saved new secret key." << std::endl;
+        return secret_key;
+    }
+}
+
 /*
 Helper function: Convert a value into a hexadecimal string, e.g., uint64_t(17) --> "11".
 */
@@ -65,28 +110,23 @@ inline std::string uint64_to_hex_string(std::uint64_t value)
     return seal::util::uint_to_hex_string(&value, std::size_t(1));
 }
 
-// TO-DO:
-// Use the Serialization class for persistence and transmission of keys and ciphertext
 
 int main() {
-    // 设置 SEAL 加密上下文
-    seal::EncryptionParameters parms(seal::scheme_type::bfv);
-    parms.set_poly_modulus_degree(2048);
-    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(2048));
-    // plain_modulus是一个重要的参数，plaintext的数值不能超过plain_modulus
-    parms.set_plain_modulus(1024);
-
+    // Load or generate encryption parameters
+    seal::EncryptionParameters parms = load_or_generate_encryption_parameters();
     seal::SEALContext context(parms);
 
     std::cout << "SEAL context created" << std::endl;
+
+    seal::KeyGenerator keygen(context);
+    // Load or generate secret key
+    seal::SecretKey secret_key = load_or_generate_secret_key(context, keygen);
 
     // Setup HTTP Sever
     httplib::Server svr;
 
     // 1. generate secret keys
     svr.Get("/get_secret_key", [&](const httplib::Request& req, httplib::Response& res) {
-        seal::KeyGenerator keygen(context);
-        auto secret_key = keygen.secret_key();
         std::string secret_key_str = secret_key_to_string(secret_key);
 
         json response_json = {
@@ -99,8 +139,7 @@ int main() {
     // 2. generate public keys: input a secret key，return public key
     svr.Post("/get_public_key", [&](const httplib::Request& req, httplib::Response& res) {
         try {
-            json request_json = json::parse(req.body);
-            std::string secret_key_base64 = request_json["secret_key"].get<std::string>();
+            std::string secret_key_base64 = secret_key_to_string(secret_key);
 
             seal::SecretKey secret_key = string_to_secret_key(secret_key_base64, context);
             seal::KeyGenerator keygen(context, secret_key);
@@ -175,7 +214,7 @@ int main() {
         }
     });
 
-    // 5. perform addition on ciphertext: input te ciphertext and an integer，return the result
+    // 5. perform addition on ciphertext: input the ciphertext and an integer，return the result
     svr.Post("/add_to_ciphertext", [&](const httplib::Request& req, httplib::Response& res) {
     try {
         json request_json = json::parse(req.body);
@@ -202,6 +241,18 @@ int main() {
     }
     });
 
+    // API to return Encryption Parameters in base64 format
+    svr.Get("/get_encryption_parameters", [&](const httplib::Request& req, httplib::Response& res) {
+        std::stringstream ss;
+        parms.save(ss);
+        std::string encryption_parameters_str = base64_encode(ss.str());
+
+        json response_json = {
+            {"encryption_parameters", encryption_parameters_str}
+        };
+
+        res.set_content(response_json.dump(), "application/json");
+    });
 
     std::cout << "Starting server at http://localhost:8081" << std::endl;
     svr.listen("0.0.0.0", 8081);

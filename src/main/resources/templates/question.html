@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poll Questions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f8f8f8;
+        }
+        .container {
+            width: 50%;
+            margin: 20px;
+            padding: 20px;
+        }
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .question h2 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .options {
+            margin-left: 20px;
+        }
+        .options label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .submit-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .submit-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .submit-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <script src="/bundle.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pollId = urlParams.get("pollId");
+    
+            if (pollId) {
+                fetch(`/api/polls/${pollId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("Failed to fetch poll details");
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        window.pollData = data; // Save the fetched data to a global variable
+                        const container = document.querySelector(".container");
+                        container.innerHTML = ""; // Clear existing content
+    
+                        data.questions.forEach(question => {
+                            const questionDiv = document.createElement("div");
+                            questionDiv.classList.add("question");
+    
+                            const questionTitle = document.createElement("h2");
+                            questionTitle.textContent = question.title;
+                            questionDiv.appendChild(questionTitle);
+    
+                            const optionsDiv = document.createElement("div");
+                            optionsDiv.classList.add("options");
+    
+                            question.options.forEach(option => {
+                                const label = document.createElement("label");
+                                const input = document.createElement("input");
+                                input.type = "radio";
+                                input.name = `question_${question.order}`;
+                                input.value = option.id;
+                                label.appendChild(input);
+                                label.appendChild(document.createTextNode(option.text));
+                                optionsDiv.appendChild(label);
+                            });
+    
+                            questionDiv.appendChild(optionsDiv);
+                            container.appendChild(questionDiv);
+                        });
+                    })
+                    .catch(error => {
+                        console.error("Error fetching poll details:", error);
+                    });
+            }
+
+            document.querySelector(".submit-button").addEventListener("click", async function() {
+            try {
+                // Get selected options
+                const selectedOptions = [];
+                document.querySelectorAll(".question").forEach((questionDiv, index) => {
+                    const selectedOption = questionDiv.querySelector("input[type='radio']:checked");
+                    if (selectedOption) {
+                        optionId = selectedOption.value;
+                        selectedOptions.push({
+                            questionOrder: index + 1,
+                            optionId: optionId
+                        });
+                    }
+                });
+
+                if (selectedOptions.length === 0) {
+                    alert("Please select at least one option to submit.");
+                    return;
+                }
+
+                const seal = await window.SEAL();
+
+                // Get encryption parameters
+                const encryptionParamsResponse = await fetch("/api/polls/get_encryption_parameters");
+                if (!encryptionParamsResponse.ok) {
+                    throw new Error("Failed to get encryption parameters");
+                }
+                const encryptionParamsJson = await encryptionParamsResponse.json();
+                const encryptionParameters = encryptionParamsJson.encryption_parameters;
+                parms =  seal.EncryptionParameters();
+                parms.load(encryptionParameters);
+
+                // ////////////////////////////////////////////////////////
+                // const parms = seal.EncryptionParameters(seal.SchemeType.bfv);
+
+                // // Set poly modulus degree
+                // parms.setPolyModulusDegree(2048);
+
+                // // Set coefficient modulus
+                // const coeffModulus = seal.CoeffModulus.BFVDefault(2048);
+                // parms.setCoeffModulus(coeffModulus);
+
+                // // Set plain modulus
+                // const plainModulus = seal.PlainModulus.Batching(2048, 20); // Matches BFV's behavior
+                // parms.setPlainModulus(plainModulus);
+
+
+                // Convert to string
+                // const encryptionParametersString = parms.save();
+                // console.log("Encryption Parameters as String:", encryptionParametersString);
+                
+                // Get public key
+                const publicKeyResponse = await fetch("/api/polls/get_public_key", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+                if (!publicKeyResponse.ok) {
+                    throw new Error("Failed to get public key");
+                }
+                const publicKeyJson = await publicKeyResponse.json();
+                const publicKeyBase64 = publicKeyJson.public_key;
+
+                // Initialize SEAL and encrypt the selected options
+                // const parms = seal.EncryptionParameters();
+                // parms.load(encryptionParameters);
+                const context = seal.Context(parms);
+                if (!context.parametersSet()) {
+                    throw new Error(
+                    'Could not set the parameters in the given context. Please try different encryption parameters.'
+                    )
+                }
+
+                const publicKey = seal.PublicKey();
+                // console.log("public key 64:" + publicKeyBase64);
+                publicKey.load(context, publicKeyBase64);
+
+                const keygen = seal.KeyGenerator(context);
+                const encryptor = seal.Encryptor(context, publicKey);
+                const batchEncoder = seal.BatchEncoder(context);
+
+                for (const option of selectedOptions) {
+                    const plainText = batchEncoder.encode(
+                        Int32Array.from([option.optionId]) // This could also be a Uint32Array
+                        );
+
+                    const cipher = seal.CipherText();
+                    encryptor.encrypt(plainText, cipher);
+
+                    // Convert ciphertext to base64 for transmission
+                    const encryptedOption = cipher.save();
+
+
+                    // console.log("encryptedOption = " + encryptedOption);
+
+                    console.log(JSON.stringify({
+                            pollId: window.pollData.id,
+                            questionId: window.pollData.questions[option.questionOrder - 1].id,
+                            optionId: encryptedOption,
+                            publicKey:publicKeyBase64,
+                        }))
+
+                    // Store the encrypted result for each question
+                    await fetch("/api/polls/store_encrypted_result", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            pollId: window.pollData.id,
+                            questionId: window.pollData.questions[option.questionOrder - 1].id,
+                            optionId: encryptedOption,
+                            publicKey:publicKeyBase64,
+                        })
+                    });
+                }
+
+                alert("Your responses have been successfully submitted!");
+            } catch (error) {
+                console.error("Error during submission:", error);
+                alert("There was an error submitting your response. Please try again later.");
+            }
+        });
+
+        });
+
+        
+    </script>
+</head>
+<body>
+<div class="container">
+    Loading poll questions...
+</div>
+<div class="submit-container">
+    <button class="submit-button">Submit</button>
+</div>
+</body>
+</html>

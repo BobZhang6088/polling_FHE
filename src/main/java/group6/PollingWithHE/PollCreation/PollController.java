@@ -36,4 +36,60 @@ public class PollController {
         List<PollResponse> completedPolls = pollService.getCompletedPolls();
         return ResponseEntity.ok(completedPolls);
     }
+
+    @PostMapping("/encrypt")
+    public ResponseEntity<String> encryptValue(@RequestBody EncryptRequest encryptRequest) {
+        String encryptedValue = pollService.encryptValue(encryptRequest);
+        return ResponseEntity.ok(encryptedValue);
+    }
+
+    @PostMapping("/decrypt")
+    public ResponseEntity<Long> decryptValue(@RequestBody DecryptRequest decryptRequest) {
+        Long decryptedValue = pollService.decryptValue(decryptRequest);
+        return ResponseEntity.ok(decryptedValue);
+    }
+
+    @GetMapping("/get_secret_key")
+    public ResponseEntity<String> getSecretKey() {
+        String secretKey = pollService.getSecretKey();
+        return ResponseEntity.ok(secretKey);
+    }
+
+    @PostMapping("/get_public_key")
+    public ResponseEntity<String> getPublicKey() {
+        String publicKey = pollService.getPublicKey();
+        return ResponseEntity.ok(publicKey);
+    }
+
+    @PostMapping("/add_to_ciphertext")
+    public ResponseEntity<String> addToCiphertext(@RequestBody AddToCiphertextRequest addToCiphertextRequest) {
+        String updatedCiphertext = pollService.addToCiphertext(addToCiphertextRequest);
+        return ResponseEntity.ok(updatedCiphertext);
+    }
+
+    @PostMapping("/store_encrypted_result")
+    public ResponseEntity<String> storeEncryptedResult(@RequestBody StoreEncryptedResultRequest request) {
+        System.out.println("calling store_encrypted_result from controller");
+        pollService.storeEncryptedResult(request);
+        return ResponseEntity.ok("Encrypted result stored successfully");
+    }
+
+
+    @GetMapping("/{pollId}")
+    public ResponseEntity<PollDetailsResponse> getPollDetails(@PathVariable Integer pollId) {
+        PollDetailsResponse response = pollService.getPollDetails(pollId);
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/get_encryption_parameters")
+    public ResponseEntity<String> getEncryptionParameters() {
+        System.out.println("Call get_encryption_parameters");
+        String encryptionParameters = pollService.getEncryptionParameters();
+        return ResponseEntity.ok(encryptionParameters);
+    }
+
 }
