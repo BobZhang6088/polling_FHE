@@ -101,7 +101,7 @@ public class PollService {
         headers.add("Content-Type", "application/json");
 
         Map<String, Object> requestBody = new HashMap<>();
-
+        System.out.println("Call Node.js at :" + url);
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
 
@@ -118,7 +118,6 @@ public class PollService {
         headers.add("Content-Type", "application/json");
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("public_key", encryptRequest.getPublicKey());
         requestBody.put("value", encryptRequest.getValue());
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
@@ -138,20 +137,36 @@ public class PollService {
         }
     }
 
-    public Long decryptValue(DecryptRequest decryptRequest) {
+    public int decryptValue(DecryptRequest decryptRequest) {
         String url = encryptionServiceBaseUrl + "/decrypt";
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("secret_key", decryptRequest.getSecretKey());
         requestBody.put("ciphertext", decryptRequest.getCiphertext());
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
 
+        System.out.println("Plaintext is :");
+
+        System.out.println(response.getBody().get("plaintext"));
+
         if (response.getStatusCode() == HttpStatus.OK) {
-            return Long.valueOf(response.getBody().get("plaintext").toString());
+            Object plaintextObj = response.getBody().get("plaintext");
+            Integer result = null;
+            if (plaintextObj instanceof Integer) {
+                // Already an Integer
+                result = (Integer) plaintextObj;
+            } else if (plaintextObj instanceof String) {
+                // Convert from String to Integer
+                try {
+                    result = Integer.valueOf((String) plaintextObj);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid number format: " + plaintextObj);
+                }
+            }
+            return result.intValue();
         } else {
             throw new RuntimeException("Decryption failed: " + response.getBody());
         }
@@ -170,10 +185,18 @@ public class PollService {
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 
         if (response.getStatusCode() == HttpStatus.OK) {
-            return response.getBody();
+            try {
+                // Parse the JSON response to extract the "ciphertext" field
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(response.getBody());
+                return rootNode.get("updated_ciphertext").asText(); // Extract "ciphertext"
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to parse the response: " + response.getBody(), e);
+            }
         } else {
-            throw new RuntimeException("Failed to add to ciphertext: " + response.getBody());
+            throw new RuntimeException("Encryption failed: " + response.getBody());
         }
+
     }
 
     public String getEncryptionParameters() {
@@ -190,7 +213,10 @@ public class PollService {
     }
 
     public void storeEncryptedResult(StoreEncryptedResultRequest request) {
-        Optional<Result> existingResult = resultRepository.findByPollIdAndQuestionIdAndEncryptedOptionId(request.getPollId(), request.getQuestionId(), request.getOptionId());
+        String encrypedOptionId = request.getOptionId();
+        DecryptRequest decryptRequest = new DecryptRequest(encrypedOptionId);
+        int plainOptionId = decryptValue(decryptRequest);
+        Optional<Result> existingResult = resultRepository.findByPollIdAndQuestionIdAndOptionId(request.getPollId(), request.getQuestionId(), plainOptionId);
         String updatedEncryptedResult;
         System.out.println("calling storeEncryptedResult from Service");
         if (existingResult.isPresent()) {
@@ -207,14 +233,12 @@ public class PollService {
         } else {
             System.out.println("The result does not exist");
             // If result does not exist, create a new result
-            updatedEncryptedResult = encryptValue(new EncryptRequest(request.getPublicKey(), 1L));
-
-            System.out.println("op id = " + request.getOptionId());
+            updatedEncryptedResult = encryptValue(new EncryptRequest(1L));
 
             Result newResult = new Result();
             newResult.setPollId(request.getPollId());
             newResult.setQuestionId(request.getQuestionId());
-            newResult.setEncryptedOptionId(request.getOptionId());
+            newResult.setOptionId(plainOptionId);
             newResult.setEncryptedResult(updatedEncryptedResult);
             resultRepository.save(newResult);
         }
@@ -238,6 +262,38 @@ public class PollService {
 
 
         return new PollDetailsResponse(poll.getId(), poll.getTitle(), poll.getEndTime(), questionDTOList);
+    }
+
+    public List<QuestionResultResponse> getPollResults(Integer pollId) {
+        // 获取指定投票的所有问题
+        List<Question> questions = questionRepository.findByPollIdOrderByQuestionOrderAsc(pollId);
+
+        if (questions.isEmpty()) {
+            return List.of();
+        }
+
+        return questions.stream().map(question -> {
+            // 获取当前问题的所有选项
+            List<PollOption> options = optionRepository.findByQuestionIdOrderByOptionOrderAsc(question.getId());
+
+            // 构造每个选项的解密结果
+            List<OptionResult> optionResults = options.stream().map(option -> {
+                Optional<Result> resultOptional = resultRepository.findByPollIdAndQuestionIdAndOptionId(
+                        pollId, question.getId(), option.getId()
+                );
+                long decryptedResult = 0;
+
+                if (resultOptional.isPresent()) {
+                    Result result = resultOptional.get();
+                    // 解密加密结果
+                    decryptedResult = decryptValue(new DecryptRequest(result.getEncryptedResult()));
+                }
+
+                return new OptionResult(option.getId(), option.getOptionText(), decryptedResult);
+            }).collect(Collectors.toList());
+
+            return new QuestionResultResponse(question.getId(), question.getTitle(), optionResults);
+        }).collect(Collectors.toList());
     }
 }
 

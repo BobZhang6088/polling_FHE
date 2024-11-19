@@ -12,7 +12,7 @@ RUN npm install
 COPY . .
 
 # Expose the port
-EXPOSE 3000
+EXPOSE 3000 9229
 
 # Command to run the service
-CMD ["node", "index.js"]
+CMD ["node","--inspect=0.0.0.0:9229", "index.js"]

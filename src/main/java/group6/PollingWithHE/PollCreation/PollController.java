@@ -45,8 +45,8 @@ public class PollController {
 
     @PostMapping("/decrypt")
     public ResponseEntity<Long> decryptValue(@RequestBody DecryptRequest decryptRequest) {
-        Long decryptedValue = pollService.decryptValue(decryptRequest);
-        return ResponseEntity.ok(decryptedValue);
+        int decryptedValue = pollService.decryptValue(decryptRequest);
+        return ResponseEntity.ok(Long.valueOf(decryptedValue));
     }
 
     @GetMapping("/get_secret_key")
@@ -55,8 +55,9 @@ public class PollController {
         return ResponseEntity.ok(secretKey);
     }
 
-    @PostMapping("/get_public_key")
+    @GetMapping("/get_public_key")
     public ResponseEntity<String> getPublicKey() {
+        System.out.println("Call get_public_key");
         String publicKey = pollService.getPublicKey();
         return ResponseEntity.ok(publicKey);
     }
@@ -91,5 +92,15 @@ public class PollController {
         String encryptionParameters = pollService.getEncryptionParameters();
         return ResponseEntity.ok(encryptionParameters);
     }
+
+    @GetMapping("/{pollId}/results")
+    public ResponseEntity<List<QuestionResultResponse>> getPollResults(@PathVariable Integer pollId) {
+        List<QuestionResultResponse> results = pollService.getPollResults(pollId);
+        if (results.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(results);
+    }
+
 
 }

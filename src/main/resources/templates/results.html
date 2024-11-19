@@ -23,7 +23,7 @@
             align-items: center;
             margin-bottom: 30px;
             padding: 20px;
-            border: 1px solid #ddd; /* Light border */
+            border: 1px solid #ddd;
             border-radius: 8px;
             background-color: #fff;
         }
@@ -55,78 +55,100 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="question-result">
-            <div class="question-text">
-                <h2>Should we ban plastic straws?</h2>
-                <div class="options">
-                    <label>YES - 60%</label>
-                    <label>NO - 40%</label>
-                </div>
-            </div>
-            <div class="chart">
-                <canvas id="strawsChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="question-result">
-            <div class="question-text">
-                <h2>How old are you?</h2>
-                <div class="options">
-                    <label>16 - 24 - 25%</label>
-                    <label>25 - 35 - 35%</label>
-                    <label>36 - 45 - 20%</label>
-                    <label>46 and above - 20%</label>
-                </div>
-            </div>
-            <div class="chart">
-                <canvas id="ageChart"></canvas>
-            </div>
-        </div>
-    </div>
+<div class="container" id="pollResultsContainer">
+    <!-- Dynamic content will be added here -->
+</div>
 
-    <script>
-        // Chart.js setup for the first poll (Plastic Straws)
-        var ctx1 = document.getElementById('strawsChart').getContext('2d');
-        var strawsChart = new Chart(ctx1, {
-            type: 'pie',
-            data: {
-                labels: ['YES', 'NO'],
-                datasets: [{
-                    data: [60, 40], // Percentages
-                    backgroundColor: ['#4CAF50', '#FF6384'],
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                }
-            }
-        });
+<script>
+    // Function to extract pollId from URL parameters
+    function getPollIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('pollId');
+    }
 
-        // Chart.js setup for the second poll (Age Group)
-        var ctx2 = document.getElementById('ageChart').getContext('2d');
-        var ageChart = new Chart(ctx2, {
-            type: 'pie',
-            data: {
-                labels: ['16 - 24', '25 - 35', '36 - 45', '46 and above'],
-                datasets: [{
-                    data: [25, 35, 20, 20], // Percentages
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50'],
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                }
+    // Fetch poll results from the API and display them dynamically
+    async function fetchPollResults(pollId) {
+        if (!pollId) {
+            console.error("Poll ID is missing in the URL!");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/polls/${pollId}/results`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch poll results');
             }
+            const data = await response.json();
+            displayPollResults(data);
+        } catch (error) {
+            console.error('Error fetching poll results:', error);
+        }
+    }
+
+    // Function to dynamically display poll results
+    function displayPollResults(results) {
+        const container = document.getElementById('pollResultsContainer');
+
+        results.forEach((questionResult, index) => {
+            // Create the question result container
+            const questionResultDiv = document.createElement('div');
+            questionResultDiv.classList.add('question-result');
+
+            // Question text and options
+            const questionTextDiv = document.createElement('div');
+            questionTextDiv.classList.add('question-text');
+            const questionTitle = document.createElement('h2');
+            questionTitle.textContent = questionResult.questionTitle;
+            questionTextDiv.appendChild(questionTitle);
+
+            const optionsDiv = document.createElement('div');
+            optionsDiv.classList.add('options');
+            const optionLabels = questionResult.options.map(option => {
+                const label = document.createElement('label');
+                label.textContent = `${option.optionText} - ${option.votes}`;
+                return label;
+            });
+            optionLabels.forEach(label => optionsDiv.appendChild(label));
+            questionTextDiv.appendChild(optionsDiv);
+
+            // Add chart container
+            const chartDiv = document.createElement('div');
+            chartDiv.classList.add('chart');
+            const canvas = document.createElement('canvas');
+            canvas.id = `chart${index}`;
+            chartDiv.appendChild(canvas);
+
+            // Append elements to question result div
+            questionResultDiv.appendChild(questionTextDiv);
+            questionResultDiv.appendChild(chartDiv);
+            container.appendChild(questionResultDiv);
+
+            // Render the chart using Chart.js
+            const ctx = canvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: questionResult.options.map(option => option.optionText),
+                    datasets: [{
+                        data: questionResult.options.map(option => option.votes),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50'], // Adjust colors as needed
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                    }
+                }
+            });
         });
-    </script>
+    }
+
+    // Get pollId from URL and fetch results
+    const pollId = getPollIdFromUrl();
+    fetchPollResults(pollId);
+</script>
 </body>
 </html>

@@ -94,14 +94,14 @@
 
             const resultsButton = document.createElement('button');
             resultsButton.textContent = "View Results";
-            resultsButton.onclick = () => goToResultsPage();
+            resultsButton.onclick = () => goToResultsPage(poll.id);
             pollDiv.appendChild(resultsButton);
 
             return pollDiv;
         }
 
-        function goToResultsPage() {
-            window.location.href = '/results.html';
+        function goToResultsPage(pollId) {
+            window.location.href = `/poll-results?pollId=${pollId}`;
         }
 
         function goToVotePage(pollId) {

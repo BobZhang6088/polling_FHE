@@ -2,79 +2,155 @@ const express = require('express');
 const SEAL = require('node-seal');
 const bodyParser = require('body-parser');
 const fs = require('fs');
+const zlib = require('zlib');
 
 const app = express();
+
+// Adjust payload size limits
+app.use(express.json({ limit: '50mb' })); // Adjust size as needed
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 const port = 3000;
 
 app.use(bodyParser.json());
 
 async function initialize() {
-    const seal = await SEAL();
-
-    // Encryption Parameters Setup
-    const parms = seal.EncryptionParameters(seal.SchemeType.bfv);
-    parms.setPolyModulusDegree(1024);
-    parms.setCoeffModulus(seal.CoeffModulus.BFVDefault(1024));
-    parms.setPlainModulus(seal.PlainModulus.Batching(1024, 20));
-    const context = seal.Context(parms, true, seal.SecurityLevel.tc128);
 
     const secretKeyFile = 'secret_key.txt';
-    if (fs.existsSync(secretKeyFile)){
-        fs.unlinkSync(secretKeyFile);
+    const publicKeyFile = 'public_key.txt';
+
+//    try {
+//        if (fs.existsSync(secretKeyFile)) {
+//            fs.unlinkSync(secretKeyFile);
+//            console.log('Deleted secret_key.txt');
+//        }
+//
+//        if (fs.existsSync(publicKeyFile)) {
+//            fs.unlinkSync(publicKeyFile);
+//            console.log('Deleted public_key.txt');
+//        }
+//
+//    } catch (err) {
+//        console.error('Error deleting key files:', err);
+//    }
+
+    const seal = await SEAL();
+
+     // Create a new EncryptionParameters
+    const schemeType = seal.SchemeType.bfv
+    const securityLevel = seal.SecurityLevel.none
+    const polyModulusDegree = 4096
+    const bitSizes = [36,36,37]
+    const bitSize = 20
+    
+    const parms = seal.EncryptionParameters(schemeType)
+
+    // Assign Poly Modulus Degree
+    parms.setPolyModulusDegree(polyModulusDegree)
+    
+    // Create a suitable set of CoeffModulus primes
+    parms.setCoeffModulus(
+      seal.CoeffModulus.Create(
+        polyModulusDegree,
+        Int32Array.from(bitSizes)
+      )
+    )
+
+    // Assign a PlainModulus (only for bfv/bgv scheme type)
+    parms.setPlainModulus(
+      seal.PlainModulus.Batching(
+        polyModulusDegree,
+        bitSize
+      )
+    )
+
+    ////////////////////////
+    // Context
+    ////////////////////////
+    
+    // Create a new Context
+    const context = seal.Context(
+      parms,
+      true,
+      securityLevel
+    )
+
+    // Helper to check if the Context was created successfully
+    if (!context.parametersSet()) {
+      throw new Error('Could not set the parameters in the given context. Please try different encryption parameters.')
     }
-    // Helper function to load or generate the secret key
-    const loadOrGenerateSecretKey = () => {
-        if (fs.existsSync(secretKeyFile)) {
 
+    const loadOrGenerateKeys = () => {
+        let secretKey;
+        let publicKey;
 
-            const savedKeyString = fs.readFileSync(secretKeyFile, 'utf-8');
-            const secretKey = seal.SecretKey();
-            secretKey.load(context, savedKeyString);
-            console.log('Loaded secret key from file.');
-            return secretKey;
+        if (fs.existsSync(secretKeyFile) && fs.existsSync(publicKeyFile)) {
+            // Load existing keys
+            const savedSecretKeyString = fs.readFileSync(secretKeyFile, 'utf-8');
+            secretKey = seal.SecretKey();
+            secretKey.load(context, savedSecretKeyString);
+
+            const savedPublicKeyString = fs.readFileSync(publicKeyFile, 'utf-8');
+            publicKey = seal.PublicKey();
+            publicKey.load(context, savedPublicKeyString);
+
+            console.log('Loaded secret key and public key from file.');
         } else {
+            // Generate new keys
             const keyGenerator = seal.KeyGenerator(context);
-            const secretKey = keyGenerator.secretKey();
-            const savedKeyString = secretKey.save();
-            fs.writeFileSync(secretKeyFile, savedKeyString, 'utf-8');
-            console.log('Generated and saved new secret key.');
-            return secretKey;
+            secretKey = keyGenerator.secretKey();
+            publicKey = keyGenerator.createPublicKey();
+
+            const savedSecretKeyString = secretKey.save();
+            const savedPublicKeyString = publicKey.save();
+
+            fs.writeFileSync(secretKeyFile, savedSecretKeyString, 'utf-8');
+            fs.writeFileSync(publicKeyFile, savedPublicKeyString, 'utf-8');
+
+            console.log('Generated and saved new secret key and public key.');
         }
+
+        return { secretKey, publicKey };
     };
 
-    // Load or generate the secret key
-    const secretKey = loadOrGenerateSecretKey();
-    const keyGenerator = seal.KeyGenerator(context, secretKey);
-    const publicKey = keyGenerator.createPublicKey();
+    // Load or generate the keys
+    const { secretKey, publicKey } = loadOrGenerateKeys();
+
 
     const encryptor = seal.Encryptor(context, publicKey);
+    const batchEncoder = seal.BatchEncoder(context)
     const decryptor = seal.Decryptor(context, secretKey);
     const evaluator = seal.Evaluator(context);
 
+    // Helper function for compression and decompression
+    const compress = (data) => zlib.gzipSync(data).toString('base64');
+    const decompress = (data) => zlib.gunzipSync(Buffer.from(data, 'base64')).toString();
+
     // 1. Get Secret Key (read-only since it's already generated)
     app.get('/get_secret_key', (req, res) => {
-        res.json({ secret_key: secretKey.save() });
+        const compressedSecretKey = compress(secretKey.save());
+        res.json({ secret_key: compressedSecretKey });
     });
 
     // 2. Generate Public Key
     app.get('/get_public_key', (req, res) => {
-        try {
-            res.json({ public_key: publicKey.save() });
-        } catch (err) {
-            res.status(400).json({ error: err.message });
-        }
+        const compressedPublicKey = compress(publicKey.save());
+        res.json({ public_key: compressedPublicKey });
     });
 
     // 3. Decrypt
     app.post('/decrypt', (req, res) => {
         const { ciphertext } = req.body;
         try {
+            const decompressedCipherText = decompress(ciphertext);
             const ct = seal.CipherText();
-            ct.load(context, ciphertext);
-            const plaintext = seal.PlainText();
-            decryptor.decrypt(ct, plaintext);
-
-            res.json({ plaintext: plaintext.toString() });
+            ct.load(context, decompressedCipherText);
+    
+            const plaintext = decryptor.decrypt(ct);
+            const decoded = batchEncoder.decode(plaintext);
+    
+            // Return the first value in the decoded array
+            res.json({ plaintext: decoded[0] });
         } catch (err) {
             res.status(400).json({ error: err.message });
         }
@@ -84,11 +160,15 @@ async function initialize() {
     app.post('/encrypt_with_public_key', (req, res) => {
         const { value } = req.body;
         try {
-            const plaintext = seal.PlainText(value.toString());
+            // Encode as a proper array with a single value
+            const plainText = batchEncoder.encode(
+                Int32Array.from([Number(value)])
+            );
             const ciphertext = seal.CipherText();
-            encryptor.encrypt(plaintext, ciphertext);
-
-            res.json({ ciphertext: ciphertext.save() });
+            encryptor.encrypt(plainText, ciphertext);
+    
+            const compressedCipherText = compress(ciphertext.save());
+            res.json({ ciphertext: compressedCipherText});
         } catch (err) {
             res.status(400).json({ error: err.message });
         }
@@ -98,13 +178,16 @@ async function initialize() {
     app.post('/add_to_ciphertext', (req, res) => {
         const { ciphertext, value } = req.body;
         try {
+            const decompressedCipherText = decompress(ciphertext);
             const ct = seal.CipherText();
-            ct.load(context, ciphertext);
+            ct.load(context, decompressedCipherText);
 
-            const plainToAdd = seal.PlainText(value.toString());
-            evaluator.addPlainInplace(ct, plainToAdd);
+            const plainText = batchEncoder.encode(
+                Int32Array.from([Number(value)]) // This could also be a Uint32Array
+                );
+            const result = evaluator.addPlain(ct, plainText);
 
-            res.json({ updated_ciphertext: ct.save() });
+            res.json({ updated_ciphertext: compress(result.save()) });
         } catch (err) {
             res.status(400).json({ error: err.message });
         }
@@ -113,6 +196,27 @@ async function initialize() {
     // 6. Get Encryption Parameters
     app.get('/get_encryption_parameters', (req, res) => {
         res.json({ encryption_parameters: parms.save() });
+    });
+
+    app.get('/get_a_test_value', (req, res) => {
+        // Encode as a proper array with a single value
+        try {
+            const plainText = batchEncoder.encode(
+                Int32Array.from([10])
+            );
+            const ciphertext = seal.CipherText();
+            encryptor.encrypt(plainText, ciphertext);
+            const ct64 = ciphertext.save();
+        
+            const cp = seal.CipherText()
+            cp.load(context, ct64)
+            const decy = decryptor.decrypt(cp);
+            const decoded = batchEncoder.decode(decy);
+            res.json({plaintext:decoded[0]});
+        } catch (err) {
+            res.status(400).json({error: err.message});
+        }
+        
     });
 
     app.listen(port, () => {

@@ -21,4 +21,13 @@ public class PageController {
         // This will look for poll_questions.html in src/main/resources/static
         return "question";
     }
+
+    @GetMapping("/poll-results")
+    public String pollResultsPage(@RequestParam Long pollId, Model model) {
+        // Add the pollId to the model so it can be used in the page
+        model.addAttribute("pollId", pollId);
+        // This will look for poll_questions.html in src/main/resources/static
+        return "results";
+    }
+
 }

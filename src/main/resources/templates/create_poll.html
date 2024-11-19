@@ -198,6 +198,7 @@
         .then(response => {
             if (response.ok) {
                 alert('Poll created successfully');
+                window.location.href = "/";
             } else {
                 alert('Failed to create poll');
             }

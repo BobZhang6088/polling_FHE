@@ -42,8 +42,12 @@ services:
       context: ./fhe-service
     ports:
       - "3000:3000"
+      - "9229:9229"
+    command: node --inspect=0.0.0.0:9229 index.js
     volumes:
       - ./fhe-service:/usr/src/app
+    environment:
+      - NODE_ENV=development
     networks:
       - app-network
             

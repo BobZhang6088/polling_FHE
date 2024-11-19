@@ -9,9 +9,8 @@ public class Result {
 
     private int pollId;
     private int questionId;
-    @Column(columnDefinition = "TEXT")
-    private String encryptedOptionId;
-    @Column(columnDefinition = "TEXT")
+    private int optionId;
+    @Column(columnDefinition = "LONGTEXT")
     private String encryptedResult;
 
     public int getId() {
@@ -38,12 +37,12 @@ public class Result {
         this.questionId = questionId;
     }
 
-    public String getEncryptedOptionId() {
-        return encryptedOptionId;
+    public int getOptionId() {
+        return optionId;
     }
 
-    public void setEncryptedOptionId(String encryptedOptionId) {
-        this.encryptedOptionId = encryptedOptionId;
+    public void setOptionId(int optionId) {
+        this.optionId = optionId;
     }
 
     public String getEncryptedResult() {
