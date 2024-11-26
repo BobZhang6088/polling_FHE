@@ -44,5 +44,5 @@ def get_a_test():
       print(f"got an error: {response}")
       return None
 if __name__ == "__main__":
-    # test_encrypt_and_decrypt()
+    test_encrypt_and_decrypt()
     get_a_test()

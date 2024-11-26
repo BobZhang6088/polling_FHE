@@ -29,13 +29,13 @@ services:
     networks:
       - app-network
 
-  cpp-service:
-    build:
-      context: ./cpp-service
-    ports:
-      - "8081:8081"
-    networks:
-      - app-network
+#  cpp-service:
+#    build:
+#      context: ./cpp-service
+#    ports:
+#      - "8081:8081"
+#    networks:
+#      - app-network
 
   node-seal-service:
     build:
