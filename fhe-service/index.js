@@ -95,6 +95,10 @@ async function initialize() {
             publicKey.load(context, savedPublicKeyString);
 
             console.log('Loaded secret key and public key from file.');
+
+            console.log("Secect Key length", savedSecretKeyString.length);
+            console.log("Public Key length", savedPublicKeyString.length);
+
         } else {
             // Generate new keys
             const keyGenerator = seal.KeyGenerator(context);
@@ -108,7 +112,10 @@ async function initialize() {
             fs.writeFileSync(publicKeyFile, savedPublicKeyString, 'utf-8');
 
             console.log('Generated and saved new secret key and public key.');
+            console.log("Secect Key length", savedSecretKeyString.length);
+            console.log("Public Key length", savedPublicKeyString.length);
         }
+
 
         return { secretKey, publicKey };
     };
@@ -185,8 +192,12 @@ async function initialize() {
             const plainText = batchEncoder.encode(
                 Int32Array.from([Number(value)]) // This could also be a Uint32Array
                 );
+            const timestampBeforeAddtion = Date.now();
+            console.log("timestampBefore: " + timestampBeforeAddtion); // 输出：当前时间的毫秒数，例如 1700659152764
             const result = evaluator.addPlain(ct, plainText);
-
+            const timestampAfterAddtion = Date.now();
+            console.log("timestampAfter: " + timestampAfterAddtion); // 输出：当前时间的毫秒数，例如 1700659152764
+            console.log("Cipher text lenght", result.save().length);
             res.json({ updated_ciphertext: compress(result.save()) });
         } catch (err) {
             res.status(400).json({ error: err.message });
