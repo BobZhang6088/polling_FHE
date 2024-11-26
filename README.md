@@ -6,7 +6,7 @@ This is a polling system with Homomorpich Encryption.
 
 #### 1. Install Docker
 
-To run this project, firs please make sure Docker is installed.
+To run this project, firs please make sure Docker is installed and running.
 
 #### 2. Build and Run
 
@@ -28,3 +28,8 @@ Run Docker compose
 #### 3. Check the localhost
 
 Open your browser and go to http://localhost:8080
+
+#### 4. Create a poll
+
+Create a poll at http://localhost:8080/create-poll
+
